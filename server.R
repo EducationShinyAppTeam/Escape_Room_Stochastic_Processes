@@ -5,254 +5,262 @@ library(shinyjs)
 library(V8)
 library(shinydashboard)
 library(shinyWidgets)
-
-#Define the function to disable all the button
-# Is there a reason you need this code?
-disableActionButton <- function(id,session) {
-  session$sendCustomMessage(
-    type = "jsCode",
-    list(code = paste("$('#",id,"').prop('disabled',true)", sep = ""))
-  )
-}
-
-# Read in Question Bank ----
-bank <- read.csv(file = "questionbank.csv", stringsAsFactors = FALSE)
-
-###########Logic part########################################################################
-
-# IMPORTANT NOTES ABOUT SCOPE
-# for now the scope of the following functions and objects are too wide, 
-# It supposed to be shrinked to this game only, which means I will try to put them into the ShinyServer function
-# Not tested yet, don't know if any error will caused by this, but the current version runs well for single user/locally
+library(grid)
+library(ggplot2)
+library(shinyalert)
 
 
-# Define functions for escape room structures
 
-createItem <- function(name, description = "", keys = c()){
-  temp <- list(name, description, keys)
-  names(temp) <- c("name", "description", "keys")
-  return(temp)
-}
 
-makeItem <- function(item, backpack = backpack){
-  m = length(item$keys)
-  count = m
-  n = length(backpack)
-  coordinate = c()
-  for (j in 1:m){
-    for (i in 1:n){
-      if (item$keys[j] == backpack[i]){
-        count = count - 1
-        coordinate = append(coordinate, i)
+
+
+shinyServer(function(input, output,session) {
+  
+  
+  
+  
+  
+  
+  
+  
+  # Read in Question Bank ----
+  bank <- read.csv(file = "questionbank.csv", stringsAsFactors = FALSE)
+  
+  ###########Logic part########################################################################
+  
+  # IMPORTANT NOTES ABOUT SCOPE
+  # for now the scope of the following functions and objects are too wide, 
+  # It supposed to be shrinked to this game only, which means I will try to put them into the ShinyServer function
+  # Not tested yet, don't know if any error will caused by this, but the current version runs well for single user/locally
+  
+  
+  # Define functions for escape room structures
+  
+  createItem <- function(name, description = "", keys = c()){
+    temp <- list(name, description, keys)
+    names(temp) <- c("name", "description", "keys")
+    return(temp)
+  }
+  
+  makeItem <- function(item, backpack = backpack){
+    m = length(item$keys)
+    count = m
+    n = length(backpack)
+    coordinate = c()
+    for (j in 1:m){
+      for (i in 1:n){
+        if (item$keys[j] == backpack[i]){
+          count = count - 1
+          coordinate = append(coordinate, i)
+        }
       }
     }
+    if (count == 0){
+      n = length(backpack)
+      temp = backpack
+      paste("Successfully created item!")
+      temp[n + 1] = item
+      names(temp)[n + 1] = item$name
+      temp = temp[-coordinate]
+      return(temp)
+    } else {
+      paste("Not enough materials in backpack.")
+      return(backpack)
+    }
   }
-  if (count == 0){
-    n = length(backpack)
-    temp = backpack
-    paste("Successfully created item!")
-    temp[n + 1] = item
-    names(temp)[n + 1] = item$name
-    temp = temp[-coordinate]
+  
+  createList <- function(...){
+    argument = list(...)
+    temp = argument
+    n = length(argument)
+    name = c()
+    for (i in 1:n){
+      name = append(name, temp[[i]]$name)
+    }
+    names(temp) = name
     return(temp)
-  } else {
-    paste("Not enough materials in backpack.")
-    return(backpack)
   }
-}
-
-createList <- function(...){
-  argument = list(...)
-  temp = argument
-  n = length(argument)
-  name = c()
-  for (i in 1:n){
-    name = append(name, temp[[i]]$name)
+  
+  createListName <- function(...){
+    argument = list(...)
+    temp = argument
+    n = length(argument)
+    name = c()
+    for (i in 1:n){
+      name = append(name, temp[[i]]$name)
+    }
+    names(temp) = name
+    return(name)
   }
-  names(temp) = name
-  return(temp)
-}
-
-createListName <- function(...){
-  argument = list(...)
-  temp = argument
-  n = length(argument)
-  name = c()
-  for (i in 1:n){
-    name = append(name, temp[[i]]$name)
+  
+  
+  
+  
+  createScene <- function(type, description, name, item = None, keys = c(), state = 0){
+    temp <- list(name, type, description, item, keys, state)
+    names(temp) <- c("name", "type", "description", "item", "keys", "state")
+    return(temp)
   }
-  names(temp) = name
-  return(name)
-}
-
-
-
-
-createScene <- function(type, description, name, item = None, keys = c(), state = 0){
-  temp <- list(name, type, description, item, keys, state)
-  names(temp) <- c("name", "type", "description", "item", "keys", "state")
-  return(temp)
-}
-
-
-createPlayer <- function(name, backpack, activeChance = 0){
-  temp = list(name, backpack, activeChance)
-  names(temp) = c("name", "backpack", "activeChance")
-}
-
-
-listNames <- function(list){
-  l = c()
-  n = length(list)
-  for (i in 1:n){
-    l = append(l, list[[i]]$name)
+  
+  
+  createPlayer <- function(name, backpack, activeChance = 0){
+    temp = list(name, backpack, activeChance)
+    names(temp) = c("name", "backpack", "activeChance")
   }
-  return(l)
-}
-
-
-# Create items
-None <- createItem(name = "nothing", description = "found nothing")
-
-password1 <- createItem(name = "password1", description = "password for box1")
-password2 <- createItem(name = "password2", description = "password for nothing")
-key2 <- createItem(name = "key2", description = "key for box3")
-key3 <- createItem(name = "key3", description = "key for nothing")
-box1 <- createItem(name = "box1", description = "a locked box")
-box2 <- createItem(name = "box2", description = "a locked box")
-box3 <- createItem(name = "box3", description = "a locked box")
-
-mirror <- createItem(name = "mirror", description = "a regular mirror")
-screwdriver <- createItem(name = "screwdriver", description = "a regular screwdriver")
-
-
-# Combined Itmes
-key1 <- createItem(name = "key1", description = "key for main entrance", keys = c("box3", "key2"))
-key0 <- createItem(name = "key0", description = "key for elevator", keys = c("box1", "password1"))
-out <- createItem(name = "out", description = "having this item means you successfully escaped from the room")
-
-
-# Create scenes
-
-sceneNothing <- createScene(
-  type = "nothing",
-  description = "Nothing is there.",
-  name = "nothing",
-  item = None
-)
-
-sceneStart <- createScene(
-  type = "nothing",
-  description = "You may start.",
-  name = "start",
-  item = None
-)
-
-sceneNoChance <- createScene(
-  type = "nothing",
-  description = "You have no Action Point left. Answer questions to gain Action Point",
-  name = "noChance",
-  item = None
-)
-
-sceneElevator <- createScene(
-  type = "exit",
-  description = "an locked elevator, need a key to use.",
-  name = "elebator",
-  item = out,
-  keys = c("key0")
-  # exit1
-)
-
-sceneDoor <- createScene(
-  type = "exit",
-  description = "main entrance",
-  name = "door",
-  item = out,
-  keys = c("key1")
-)
-
-scenePainting <- createScene(
-  type = "decoration",
-  description = "painting on the wall",
-  name = "painting",
-  item = password2
-  # password for nothing
-)
-
-sceneDroplight <- createScene(
-  type = "light",
-  description = "a droplight on the ceiling",
-  name = "droplight",
-  item = key3
-  # key for nothing
-)
-
-sceneCarpet <- createScene(
-  type = "decoration",
-  description = "carpet on the floor",
-  name = "carpet",
-  item = key2
-  # key for box 3
-)
-
-sceneTable1 <- createScene(
-  type = "table",
-  description = "table on the carpet",
-  name = "table1",
-  item = box1
-  # contains key0, the key for elevator, need password 1 to open
-)
-
-sceneTable2 <- createScene(
-  type = "table",
-  description = "table next to the chair",
-  name = "table2",
-  item = box2
-  # useless box
-)
-
-sceneChair <- createScene(
-  type = "chair",
-  description = "a chair",
-  name = "chair",
-  item = box3
-  # contains key1, the key for elevator, need key2 to open
-)
-
-sceneLamp <- createScene(
-  type = "light",
-  description = "lamp on the table",
-  name = "lamp",
-  item = screwdriver
-  # useless
-
-)
-
-scenePlant <- createScene(
-  type = "plant",
-  description = "plant in the room",
-  name = "plant",
-  item = password1
-  # password for box1
-)
-
-
-# Create lists that contains elements needed for the escape room
-sceneList <- createList(sceneElevator, sceneDoor, scenePainting, sceneDroplight, sceneCarpet,
+  
+  
+  listNames <- function(list){
+    l = c()
+    n = length(list)
+    for (i in 1:n){
+      l = append(l, list[[i]]$name)
+    }
+    return(l)
+  }
+  
+  
+  # Create items
+  None <- createItem(name = "nothing", description = "found nothing")
+  
+  password1 <- createItem(name = "password1", description = "password for box1")
+  password2 <- createItem(name = "password2", description = "password for nothing")
+  key2 <- createItem(name = "key2", description = "key for box3")
+  key3 <- createItem(name = "key3", description = "key for nothing")
+  box1 <- createItem(name = "box1", description = "a locked box")
+  box2 <- createItem(name = "box2", description = "a locked box")
+  box3 <- createItem(name = "box3", description = "a locked box")
+  
+  mirror <- createItem(name = "mirror", description = "a regular mirror")
+  screwdriver <- createItem(name = "screwdriver", description = "a regular screwdriver")
+  
+  
+  # Combined Itmes
+  key1 <- createItem(name = "key1", description = "key for main entrance", keys = c("box3", "key2"))
+  key0 <- createItem(name = "key0", description = "key for elevator", keys = c("box1", "password1"))
+  out <- createItem(name = "out", description = "having this item means you successfully escaped from the room")
+  
+  
+  # Create scenes
+  
+  sceneNothing <- createScene(
+    type = "nothing",
+    description = "Nothing is there.",
+    name = "nothing",
+    item = None
+  )
+  
+  sceneStart <- createScene(
+    type = "nothing",
+    description = "You may start.",
+    name = "start",
+    item = None
+  )
+  
+  sceneNoChance <- createScene(
+    type = "nothing",
+    description = "You have no Action Point left. Answer questions to gain Action Point",
+    name = "noChance",
+    item = None
+  )
+  
+  sceneElevator <- createScene(
+    type = "exit",
+    description = "an locked elevator, need a key to use.",
+    name = "elebator",
+    item = out,
+    keys = c("key0")
+    # exit1
+  )
+  
+  sceneDoor <- createScene(
+    type = "exit",
+    description = "main entrance",
+    name = "door",
+    item = out,
+    keys = c("key1")
+  )
+  
+  scenePainting <- createScene(
+    type = "decoration",
+    description = "painting on the wall",
+    name = "painting",
+    item = password2
+    # password for nothing
+  )
+  
+  sceneDroplight <- createScene(
+    type = "light",
+    description = "a droplight on the ceiling",
+    name = "droplight",
+    item = key3
+    # key for nothing
+  )
+  
+  sceneCarpet <- createScene(
+    type = "decoration",
+    description = "carpet on the floor",
+    name = "carpet",
+    item = key2
+    # key for box 3
+  )
+  
+  sceneTable1 <- createScene(
+    type = "table",
+    description = "table on the carpet",
+    name = "table1",
+    item = box1
+    # contains key0, the key for elevator, need password 1 to open
+  )
+  
+  sceneTable2 <- createScene(
+    type = "table",
+    description = "table next to the chair",
+    name = "table2",
+    item = box2
+    # useless box
+  )
+  
+  sceneChair <- createScene(
+    type = "chair",
+    description = "a chair",
+    name = "chair",
+    item = box3
+    # contains key1, the key for elevator, need key2 to open
+  )
+  
+  sceneLamp <- createScene(
+    type = "light",
+    description = "lamp on the table",
+    name = "lamp",
+    item = screwdriver
+    # useless
+    
+  )
+  
+  scenePlant <- createScene(
+    type = "plant",
+    description = "plant in the room",
+    name = "plant",
+    item = password1
+    # password for box1
+  )
+  
+  
+  # Create lists that contains elements needed for the escape room
+  sceneList <- createList(sceneElevator, sceneDoor, scenePainting, sceneDroplight, sceneCarpet,
                           sceneTable1, sceneTable2, sceneChair, sceneLamp, scenePlant)
-
-itemList <- createList(None, password1, password2, key2, key3, box1, box2, box3, mirror, screwdriver, key1, key0, out)
-
-
-backpackNames <- c("None", "password1", "password2", "key2", "key3", "box1", "box2", "box3", "mirror", "screwdriver", "key1", "key0", "out")
-
-combineList <- createList(key0, key1)
-
-
-combineListNames <- c("box3", "key2", "key1", "key2" ,"box3", "key1", "box1", "password1", "key0", "password1", "box1", "key0")
-
-recognize <- function(x, y){
+  
+  itemList <- createList(None, password1, password2, key2, key3, box1, box2, box3, mirror, screwdriver, key1, key0, out)
+  
+  
+  backpackNames <- c("None", "password1", "password2", "key2", "key3", "box1", "box2", "box3", "mirror", "screwdriver", "key1", "key0", "out")
+  
+  combineList <- createList(key0, key1)
+  
+  
+  combineListNames <- c("box3", "key2", "key1", "key2" ,"box3", "key1", "box1", "password1", "key0", "password1", "box1", "key0")
+  
+  recognize <- function(x, y){
     if (x > -322 & x < -184 & y > -49 & y < 203){
       return(sceneElevator)
     } else if(x > 261 & x < 322 & y > -11 & y < 147){
@@ -280,19 +288,25 @@ recognize <- function(x, y){
     } else{
       return(sceneNothing)
     }
-}
-
-# function that prepared for adding items to backpack, but I found a replace solution for that.
-# addItem <- function(item, backpack. = backpack){
-#   backpack[[item$name]] = item
-#   return(backpack)
-# }
-
-###########Logic part######################################################################
-
-
-
-shinyServer(function(input, output,session) {
+  }
+  
+  # function that prepared for adding items to backpack, but I found a replace solution for that.
+  # addItem <- function(item, backpack. = backpack){
+  #   backpack[[item$name]] = item
+  #   return(backpack)
+  # }
+  
+  ###########Logic part######################################################################
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   # Initializing a game progress object
   gameInProgress <- FALSE
 
@@ -370,6 +384,7 @@ shinyServer(function(input, output,session) {
   )
 
   observeEvent(input$clear,{
+    shinyalert("Congratulation!", "You Successfully Escaped the Room!", type = "success")
     # This part is saved for 'clear' button, which is suppose to restart the game, 
     # But I am still thinking if this is necessary
   })
@@ -526,7 +541,7 @@ shinyServer(function(input, output,session) {
 
   observeEvent(input$submitAnswer1, {
     ans1 = bank[index$index, "answer"] # See prior comments
-    if (input$choice1 == ans1){
+    if (input$answersQ1 == ans1){
       player$actionPoint = player$actionPoint + 1 # Use <- not = here
       updateButton(
         session = session,
@@ -541,7 +556,7 @@ shinyServer(function(input, output,session) {
         img(src = "check.png", width = 30, alt = "Correct") # Don't forget alt text
         #p("Correct, reactice chance +1!")
       })
-    } else if (input$choice1 == "--Select Your Answer--"){
+    } else if (input$answersQ1 == "--Select Your Answer--"){
       output$questionFeedback1 <- renderUI({
         p("Make your choice.")
       })
@@ -558,14 +573,14 @@ shinyServer(function(input, output,session) {
 #####################################################
   observeEvent(input$submitAnswer2,{
     ans2 = bank[index$index+1, 7]
-    if (input$choice2 == ans2){
+    if (input$answersQ2 == ans2){
       player$actionPoint = player$actionPoint + 1
       updateButton(session,"submitAnswer2",label = "Submit Answer",style = "danger", size = "small", disabled = TRUE)
       output$questionFeedback2 <- renderUI({
         img(src = "check.png",width = 30)
         #p("Correct, reactice chance +1!")
       })
-    } else if (input$choice2 == "--Select Your Answer--"){
+    } else if (input$answersQ2 == "--Select Your Answer--"){
       output$questionFeedback2 <- renderUI({
         p("Make your choice.")
       })
@@ -579,13 +594,13 @@ shinyServer(function(input, output,session) {
 #####################################################
   observeEvent(input$submitAnswer3,{
     ans3 = bank[index$index+2, 7]
-    if (input$choice3 == ans3){
+    if (input$answersQ3 == ans3){
       player$actionPoint = player$actionPoint + 1
       updateButton(session,"submitAnswer3",label = "Submit Answer",style = "danger", size = "small", disabled = TRUE)
       output$questionFeedback3 <- renderUI({
         img(src = "check.png",width = 30)
       })
-    } else if (input$choice3 == "--Select Your Answer--"){
+    } else if (input$answersQ3 == "--Select Your Answer--"){
       output$questionFeedback3 <- renderUI({
         p("Make your choice.")
       })
@@ -714,23 +729,46 @@ shinyServer(function(input, output,session) {
 
 
 
-
+#############################################################################################################
+  # Original COde
   #Create function for ploting the target
-  plotTarget = function(x,y){
-    #Get image
-    isolate(ima <- readPNG("Room6.png"))
-    #isolate(ima <- readPNG("Room5.png"))
+  # plotTarget = function(x,y){
+  #   #Get image
+  #   isolate(ima <- readPNG("Room6.png"))
+  # 
+  #   isolate(plot(
+  #     x=-300:300,ylim=c(-300,300),xlim=c(-300,300),type='p',xlab = '',ylab = ''))
+  # 
+  #   #Get the plot information so the image will fill the plot box, and draw it
+  #   isolate(lim <- par())
+  #   isolate(rasterImage(ima
+  #                       , lim$usr[1]
+  #                       , lim$usr[3]
+  #                       , lim$usr[2]
+  #                       , lim$usr[4]
+  #                       ))
+  #   lines(x,y, xlim = c(-300,300), ylim = c(-300,300),type = 'p', pch = 13, cex = 4, col = "red")
+  # }
 
-    #Set up the plot area
-    #isolate(plot(x=-15:15,ylim=c(-12,12),xlim=c(-15,15),type='p',xlab = '',ylab = ''))
-    isolate(plot(x=-300:300,ylim=c(-300,300),xlim=c(-300,300),type='p',xlab = '',ylab = ''))
-
-    #Get the plot information so the image will fill the plot box, and draw it
-    isolate(lim <- par())
-    isolate(rasterImage(ima, lim$usr[1], lim$usr[3], lim$usr[2], lim$usr[4]))
-    lines(x,y, xlim = c(-300,300), ylim = c(-300,300),type = 'p', pch = 13, cex = 4, col = "red")
+  ##############################################################################################################
+  # Testing area on using ggplot to plot
+  #Create function for ploting the target
+  plotTarget <- function(x,y){
+    coordinate <- data.frame(x = x, y = y)
+    background <- png::readPNG('Room6.png')
+    rg <- grid::rasterGrob(background, width=unit(1,"npc"), height=unit(1,"npc"))
+    
+    ggplot(coordinate, aes(x,y)) + 
+      annotation_custom(rg) +
+      geom_point(colour="red", type = 'p', pch = 13, cex = 4,) +
+      scale_x_continuous(expand=c(0,0), lim=c(-300,300)) +
+      scale_y_continuous(expand=c(0,0), lim=c(-300,300)) +
+      theme_void() +
+      theme(aspect.ratio = nrow(background)/ncol(background))
   }
-
+  
+  
+  
   ############################################################################################################
   # The following codes are saved for multi-room escape room game. 
   # to be specific, they are functions that is going to display the other views of the room or other rooms.
@@ -932,20 +970,20 @@ shinyServer(function(input, output,session) {
                               choices = activeItems)
         } else {
             output$answer <- renderUI({
-              print("You need a key or password to interact with this scene.")
+              h2("You need a key or password to interact with this scene.")
             })
         }
       } else {
         backpack[[tempName]] = 1
         backpack$None = 0
         output$answer <- renderUI({
-          print("You have already activated with this scene.")
+          h2("You have already activated with this scene.")
         })
 
       }
     } else {
       output$answer <- renderUI({
-        print("Nothing to interact.")
+        h2("Nothing to interact.")
       })
     }
   })
@@ -983,11 +1021,13 @@ shinyServer(function(input, output,session) {
 
   output$target <- renderPlot({
     plotTarget(var$x, var$y)
-  }, height = 900, width = 900)
+  }
+  , height = 900, width = 900
+  )
   
 
   observe({
-    activeItems = c("Backpack:")
+    activeItems = c()
     n = length(backpackNames)
     for (i in 1:n){
       if(is.null(backpack[[backpackNames[i]]])){
@@ -997,14 +1037,18 @@ shinyServer(function(input, output,session) {
       }
     }
     output$backpack <- renderUI({
+      
       paste(activeItems, collapse = "\n")
+      
+      # tempOutput <- paste(activeItems, collapse = "\n")
+      # writeLines(tempOutput)
     })
   })
 
   observe({
     current = recognize(var$x, var$y)
     output$answer <- renderUI({
-      print(current$description)
+      h2(current$description)
     })
 
   })
@@ -1025,6 +1069,7 @@ shinyServer(function(input, output,session) {
       output$feedback4 <- renderUI({
         paste("Successfully Escaped!")
       })
+      shinyalert("Congratulation!", "You Successfully Escaped the Room!", type = "success")
     }
   })
 
@@ -1058,7 +1103,7 @@ shinyServer(function(input, output,session) {
 
     } else {
       output$answer <- renderUI({
-        print("You have to combine exactly two items that are able to be combined.")
+        h2("You have to combine exactly two items that are able to be combined.")
       })
     }
   })

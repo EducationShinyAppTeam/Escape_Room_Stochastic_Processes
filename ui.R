@@ -102,11 +102,11 @@ ui <- dashboardPage(
           # the value and be set up in a column with width = 3
           column(
             width = 1,
-            p("Action Point: ")
+            #p("Action Point: ")
           ),
           column(
             width = 1,
-            uiOutput("activeChance")
+            #uiOutput("activeChance")
           ),
         ),
         fluidRow(
@@ -116,9 +116,11 @@ ui <- dashboardPage(
             plotOutput(
               outputId = "target",
               click = 'Click' ,
-              dblclick = "Click12"
-            ),
-            style = "height: 900px;" # Forces the row to have a certain height
+              dblclick = "Click12", 
+              width = "90%",
+              height = "90%"
+            )
+            #, style = "height: '100%';" # Forces the row to have a certain height
           ),
           # column(
           # Not sure why this was commented out and still around
@@ -131,13 +133,24 @@ ui <- dashboardPage(
           #   ),
           #   style = "height: 320px;"
           # ),
+          # column(
+          #   width = 2,
+          #   #uiOutput("backpack")
+          #   # If this going to be a text list, you might want more than 3 columns
+          # ),
           column(
-            width = 1,
-            uiOutput("backpack")
-            # If this going to be a text list, you might want more than 3 columns
-          ),
-          column(
-            width = 2,
+            width = 5,
+            h3("Actionpoints: "),
+            p("Actionpoints you can use: "),
+            uiOutput("activeChance"),
+            p("Out of Action Points? "),
+            p("Answer Questions below this page to gain Action Points to interact with scenes!"),
+            h3("Backpack: "),
+            uiOutput("backpack", class = "largerFont"),
+            
+            h3('Combine items:'),
+            p('Select items to combine and gain new items.'),
+            
             selectInput(
               inputId = "backpackList",
               label = "Backpack",
@@ -145,19 +158,29 @@ ui <- dashboardPage(
                 "Nothing"),
               multiple = TRUE
             ),
+            
+            p("Selelct Items to Combine"),
+            bsButton(
+              inputId = "combine",
+              label = "Combine Item",
+              style = "danger",
+              size = "default",
+              disabled = FALSE
+            ),
+  
             p(uiOutput("answer")),
             uiOutput("feedback4")
-          ),
-          column(width = 2,
-                 p("Selelct Items to Combine"),
-                 bsButton(
-                   inputId = "combine",
-                   label = "Combine Item",
-                   style = "danger",
-                   size = "default",
-                   disabled = FALSE
-                 )
-                 )
+          )
+          # column(width = 2,
+          #        p("Selelct Items to Combine"),
+          #        bsButton(
+          #          inputId = "combine",
+          #          label = "Combine Item",
+          #          style = "danger",
+          #          size = "default",
+          #          disabled = FALSE
+          #        )
+          #        )
           # column(
           #   width = 1,
           #   conditionalPanel(
@@ -182,6 +205,7 @@ ui <- dashboardPage(
               value = FALSE, # You can omit these last two as they are default
               disabled = FALSE
             ),
+            useShinyalert(),
             bsButton(
               inputId = 'clear',
               label = "Restart",
@@ -230,7 +254,7 @@ ui <- dashboardPage(
 
 
 
-        h3("Questions"),
+        h3("Answer Questions below to gain Active Points, then use them to interact with objects in the room!"),
         wellPanel( # I'm removing the fluidRows
           h4("Scenario"),
           uiOutput("scenario"),
