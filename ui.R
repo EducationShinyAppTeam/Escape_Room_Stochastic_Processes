@@ -8,7 +8,7 @@ library(shinyWidgets)
 library(boastUtils)
 library(grid)
 library(ggplot2)
-library(shinyalert)
+#library(shinyalert)
 
 
 
@@ -152,6 +152,8 @@ ui <- dashboardPage(
             p("Answer Questions below this page to gain Action Points to interact with scenes!"),
             h3("Backpack: "),
             uiOutput("backpack", class = "largerFont"),
+            h3("Used Items: "),
+            uiOutput("usedItems", class = "largerFont"),
             
             h3('Combine items:'),
             p('Select items to combine and gain new items.'),

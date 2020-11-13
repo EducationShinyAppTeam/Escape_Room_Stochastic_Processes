@@ -122,21 +122,21 @@ shinyServer(function(input, output,session) {
   # Create items
   None <- createItem(name = "nothing", description = "found nothing")
   
-  password1 <- createItem(name = "password1", description = "password for box1")
-  password2 <- createItem(name = "password2", description = "password for nothing")
-  key2 <- createItem(name = "key2", description = "key for box3")
-  key3 <- createItem(name = "key3", description = "key for nothing")
-  box1 <- createItem(name = "box1", description = "a locked box")
-  box2 <- createItem(name = "box2", description = "a locked box")
-  box3 <- createItem(name = "box3", description = "a locked box")
+  goldenPassword <- createItem(name = "goldenPassword", description = "password for goldenBox")
+  fakePassword <- createItem(name = "fakePassword", description = "password for nothing")
+  copperKey <- createItem(name = "copperKey", description = "key for copperBox")
+  fakeKey <- createItem(name = "fakeKey", description = "key for nothing")
+  goldenBox <- createItem(name = "goldenBox", description = "a locked box")
+  silverBox <- createItem(name = "silverBox", description = "a locked box")
+  copperBox <- createItem(name = "copperBox", description = "a locked box")
   
   mirror <- createItem(name = "mirror", description = "a regular mirror")
   screwdriver <- createItem(name = "screwdriver", description = "a regular screwdriver")
   
   
   # Combined Itmes
-  key1 <- createItem(name = "key1", description = "key for main entrance", keys = c("box3", "key2"))
-  key0 <- createItem(name = "key0", description = "key for elevator", keys = c("box1", "password1"))
+  EntranceKey <- createItem(name = "EntranceKey", description = "key for main entrance", keys = c("copperBox", "copperKey"))
+  ElevatorKey <- createItem(name = "ElevatorKey", description = "key for elevator", keys = c("goldenBox", "goldenPassword"))
   out <- createItem(name = "out", description = "having this item means you successfully escaped from the room")
   
   
@@ -168,7 +168,7 @@ shinyServer(function(input, output,session) {
     description = "an locked elevator, need a key to use.",
     name = "elebator",
     item = out,
-    keys = c("key0")
+    keys = c("ElevatorKey")
     # exit1
   )
   
@@ -177,14 +177,14 @@ shinyServer(function(input, output,session) {
     description = "main entrance",
     name = "door",
     item = out,
-    keys = c("key1")
+    keys = c("EntranceKey")
   )
   
   scenePainting <- createScene(
     type = "decoration",
     description = "painting on the wall",
     name = "painting",
-    item = password2
+    item = fakePassword
     # password for nothing
   )
   
@@ -192,7 +192,7 @@ shinyServer(function(input, output,session) {
     type = "light",
     description = "a droplight on the ceiling",
     name = "droplight",
-    item = key3
+    item = fakeKey
     # key for nothing
   )
   
@@ -200,7 +200,7 @@ shinyServer(function(input, output,session) {
     type = "decoration",
     description = "carpet on the floor",
     name = "carpet",
-    item = key2
+    item = copperKey
     # key for box 3
   )
   
@@ -208,15 +208,15 @@ shinyServer(function(input, output,session) {
     type = "table",
     description = "table on the carpet",
     name = "table1",
-    item = box1
-    # contains key0, the key for elevator, need password 1 to open
+    item = goldenBox
+    # contains ElevatorKey, the key for elevator, need password 1 to open
   )
   
   sceneTable2 <- createScene(
     type = "table",
     description = "table next to the chair",
     name = "table2",
-    item = box2
+    item = silverBox
     # useless box
   )
   
@@ -224,8 +224,8 @@ shinyServer(function(input, output,session) {
     type = "chair",
     description = "a chair",
     name = "chair",
-    item = box3
-    # contains key1, the key for elevator, need key2 to open
+    item = copperBox
+    # contains EntranceKey, the key for elevator, need copperKey to open
   )
   
   sceneLamp <- createScene(
@@ -241,8 +241,8 @@ shinyServer(function(input, output,session) {
     type = "plant",
     description = "plant in the room",
     name = "plant",
-    item = password1
-    # password for box1
+    item = goldenPassword
+    # password for goldenBox
   )
   
   
@@ -250,15 +250,13 @@ shinyServer(function(input, output,session) {
   sceneList <- createList(sceneElevator, sceneDoor, scenePainting, sceneDroplight, sceneCarpet,
                           sceneTable1, sceneTable2, sceneChair, sceneLamp, scenePlant)
   
-  itemList <- createList(None, password1, password2, key2, key3, box1, box2, box3, mirror, screwdriver, key1, key0, out)
+  itemList <- createList(None, goldenPassword, fakePassword, copperKey, fakeKey, goldenBox, silverBox, copperBox, mirror, screwdriver, EntranceKey, ElevatorKey, out)
   
+  backpackNames <- c("None", "goldenPassword", "fakePassword", "copperKey", "fakeKey", "goldenBox", "silverBox", "copperBox", "mirror", "screwdriver", "EntranceKey", "ElevatorKey", "out")
   
-  backpackNames <- c("None", "password1", "password2", "key2", "key3", "box1", "box2", "box3", "mirror", "screwdriver", "key1", "key0", "out")
+  combineList <- createList(ElevatorKey, EntranceKey)
   
-  combineList <- createList(key0, key1)
-  
-  
-  combineListNames <- c("box3", "key2", "key1", "key2" ,"box3", "key1", "box1", "password1", "key0", "password1", "box1", "key0")
+  combineListNames <- c("copperBox", "copperKey", "EntranceKey", "copperKey" ,"copperBox", "EntranceKey", "goldenBox", "goldenPassword", "ElevatorKey", "goldenPassword", "goldenBox", "ElevatorKey")
   
   recognize <- function(x, y){
     if (x > -322 & x < -184 & y > -49 & y < 203){
@@ -342,8 +340,8 @@ shinyServer(function(input, output,session) {
   var <- reactiveValues(x = NULL, y = NULL, x2 = NULL, y2 = NULL)
 
   # Please see prior comments about commentd out code
-  # backpackNames <- c("None", "password1", "password2", "key2", "key3", "box1",
-  # "box2", "box3", "mirror", "screwdriver", "key1", "key0", "out")
+  # backpackNames <- c("None", "goldenPassword", "fakePassword", "copperKey", "fakeKey", "goldenBox",
+  # "silverBox", "copperBox", "mirror", "screwdriver", "EntranceKey", "ElevatorKey", "out")
 
   # Randomly generate one question every time when "Next Question" button is clicked.
   # When I look at the question bank, there is one context (alexis, james,...)
@@ -369,22 +367,47 @@ shinyServer(function(input, output,session) {
   player <- reactiveValues(actionPoint = 10)
   backpack <- reactiveValues(
     None = 0,
-    password1 = 1,
-    password2 = 0,
-    key2 = 0,
-    key3 = 0,
-    box1 = 1,
-    box2 = 0,
-    box3 = 0,
+    goldenPassword = 1,
+    fakePassword = 0,
+    copperKey = 0,
+    fakeKey = 0,
+    goldenBox = 1,
+    silverBox = 0,
+    copperBox = 0,
     mirror = 0,
     screwdriver = 0,
-    key1 = 0,
-    key0 = 0,
+    EntranceKey = 0,
+    ElevatorKey = 0,
     out = 0
   )
 
+  usedItems <- reactiveValues(
+    None = 0,
+    goldenPassword = 0,
+    fakePassword = 0,
+    copperKey = 0,
+    fakeKey = 0,
+    goldenBox = 0,
+    silverBox = 0,
+    copperBox = 0,
+    mirror = 0,
+    screwdriver = 0,
+    EntranceKey = 0,
+    ElevatorKey = 0,
+    out = 0
+  )
+  
   observeEvent(input$clear,{
-    shinyalert("Congratulation!", "You Successfully Escaped the Room!", type = "success")
+    
+    # sendSweetAlert(
+    #   session = session,
+    #   title = "Congratulations!",
+    #   text = "You Successfully Escaped the Room! Enjoy the beach~",
+    #   type = "success"
+    # )
+    
+    #shinyalert("Congratulations!", "You Successfully Escaped the Room! Enjoy the beach~", type = "success")
+    
     # This part is saved for 'clear' button, which is suppose to restart the game, 
     # But I am still thinking if this is necessary
   })
@@ -773,21 +796,21 @@ shinyServer(function(input, output,session) {
   # The following codes are saved for multi-room escape room game. 
   # to be specific, they are functions that is going to display the other views of the room or other rooms.
   
-  # plotTarget2 = function(x,y){
-  #   #Get image
-  #   isolate(ima <- readPNG("Room6.png"))
-  #
-  #   #Set up the plot area
-  #   #isolate(plot(x=-15:15,ylim=c(-12,12),xlim=c(-15,15),type='p',xlab = '',ylab = ''))
-  #   isolate(plot(x=-300:300,ylim=c(-300,300),xlim=c(-300,300),type='p',xlab = '',ylab = ''))
-  #
-  #
-  #   #Get the plot information so the image will fill the plot box, and draw it
-  #   isolate(lim <- par())
-  #   isolate(rasterImage(ima, lim$usr[1], lim$usr[3], lim$usr[2], lim$usr[4]))
-  #   #lines(x,y, xlim = c(-15,15), ylim = c(-12,12),type = 'p', pch = 20)
-  # }
-  #
+  plotTarget2 = function(){
+    #Get image
+    isolate(ima <- readPNG("beach.png"))
+
+    #Set up the plot area
+    #isolate(plot(x=-15:15,ylim=c(-12,12),xlim=c(-15,15),type='p',xlab = '',ylab = ''))
+    isolate(plot(x=-300:300,ylim=c(-300,300),xlim=c(-300,300),type='p',xlab = '',ylab = ''))
+
+
+    #Get the plot information so the image will fill the plot box, and draw it
+    isolate(lim <- par())
+    isolate(rasterImage(ima, lim$usr[1], lim$usr[3], lim$usr[2], lim$usr[4]))
+    #lines(x,y, xlim = c(-15,15), ylim = c(-12,12),type = 'p', pch = 20)
+  }
+
   # plotTarget3 = function(x,y){
   #   #Get image
   #   isolate(ima <- readPNG("Room6.png"))
@@ -921,7 +944,7 @@ shinyServer(function(input, output,session) {
         var$x = 11
         var$y = 11
 
-      } else if (backpack[[tempName]] == 0 & player$actionPoint > 0){
+      } else if (backpack[[tempName]] == 0 & player$actionPoint > 0 & usedItems[[tempName]] == 0){
           if (is.null(current$keys)){
 
             backpack[[tempName]] <- 1
@@ -940,8 +963,17 @@ shinyServer(function(input, output,session) {
               } else {
               }
             }
-
-
+            
+            tempString <- paste(tempName, "is added to your backpack!")
+            #shinyalert("Item Gained!", tempString, type = "info")
+            
+            sendSweetAlert(
+              session = session,
+              title = "Item Gained!",
+              text = tempString,
+              type = "info"
+            )
+            
             updateSelectInput(session, inputId = "backpackList",
                               label = "Backpack",
                               choices = activeItems)
@@ -977,7 +1009,18 @@ shinyServer(function(input, output,session) {
         backpack[[tempName]] = 1
         backpack$None = 0
         output$answer <- renderUI({
-          h2("You have already activated with this scene.")
+          #h2("You have already activated with this scene.")
+          tempString <- "You have already activated with this object."
+          
+          #shinyalert("Woops!", tempString, type = "error")
+          
+          sendSweetAlert(
+            session = session,
+            title = "Woops!",
+            text = tempString,
+            type = "error"
+          )
+          
         })
 
       }
@@ -1027,6 +1070,7 @@ shinyServer(function(input, output,session) {
   
 
   observe({
+    # display items in backpack
     activeItems = c()
     n = length(backpackNames)
     for (i in 1:n){
@@ -1037,14 +1081,26 @@ shinyServer(function(input, output,session) {
       }
     }
     output$backpack <- renderUI({
-      
       paste(activeItems, collapse = "\n")
-      
-      # tempOutput <- paste(activeItems, collapse = "\n")
-      # writeLines(tempOutput)
+    })
+    
+    # display usedItems
+    damagedItems = c()
+    n = length(backpackNames)
+    for (i in 1:n){
+      if(is.null(usedItems[[backpackNames[i]]])){
+        usedItems[[backpackNames[i]]] = 0
+      } else if(usedItems[[backpackNames[i]]] == 1){
+        damagedItems = append(damagedItems, backpackNames[i])
+      }
+    }
+    output$usedItems <- renderUI({
+      paste(damagedItems, collapse = "\n")
     })
   })
 
+  
+  
   observe({
     current = recognize(var$x, var$y)
     output$answer <- renderUI({
@@ -1063,13 +1119,36 @@ shinyServer(function(input, output,session) {
   observe({
     if(backpack$out == 0){
       output$feedback4 <- renderUI({
-        paste("Find Clues to escape the room!")
+        #paste("Find Clues to escape the room!")
+        #shinyalert("Hint", "Find Clues to escape the room!", type = "info")
+        
+        sendSweetAlert(
+          session = session,
+          title = "Hint!",
+          text = "Find Clues to escape the room!",
+          type = "info"
+        )
+        
       })
     } else {
       output$feedback4 <- renderUI({
         paste("Successfully Escaped!")
       })
-      shinyalert("Congratulation!", "You Successfully Escaped the Room!", type = "success")
+      
+      sendSweetAlert(
+        session = session,
+        title = "Congratulations!",
+        text = "You Successfully Escaped the Room! Enjoy the beach~",
+        type = "success"
+      )
+      
+      #shinyalert("Congratulations!", "You Successfully Escaped the Room! Enjoy the beach~", type = "success")
+      
+      output$target <- renderPlot({
+        plotTarget2()
+      }
+      , height = 900, width = 900
+      )
     }
   })
 
@@ -1081,6 +1160,29 @@ shinyServer(function(input, output,session) {
       for (i in 1:n){
         if (combineListNames[3*n-2] == items[1] & combineListNames[3*n-1] == items[2]){
           backpack[[combineListNames[3*n]]] = 1
+          backpack[[combineListNames[3*n-2]]] = 0 
+          backpack[[combineListNames[3*n-1]]] = 0
+          usedItems[[items[1]]] = 1
+          usedItems[[items[2]]] = 1
+          tempName = combineListNames[3*n]
+          
+          tempString <- paste(tempName, "is added to your backpack!")
+          #shinyalert("Item Gained!", tempString, type = "info")
+          sendSweetAlert(
+            session = session,
+            title = "Item Gained!",
+            text = tempString,
+            type = "info"
+          )
+        }
+        else {
+          tempString <- "This two items cannot be combined."
+          sendSweetAlert(
+            session = session,
+            title = "Woops",
+            text = tempString,
+            type = "error"
+          )
         }
       }
 
@@ -1096,14 +1198,23 @@ shinyServer(function(input, output,session) {
         }
       }
 
-
       updateSelectInput(session, inputId = "backpackList",
                         label = "Backpack",
                         choices = activeItems)
 
     } else {
       output$answer <- renderUI({
-        h2("You have to combine exactly two items that are able to be combined.")
+        #h2("You have to combine exactly two items that are able to be combined.")
+        tempString <- "You have to combine exactly two items that are able to be combined."
+        #shinyalert("Woops!", tempString, type = "error")
+        
+        sendSweetAlert(
+          session = session,
+          title = "Woops!",
+          text = tempString,
+          type = "error"
+        )
+        
       })
     }
   })
