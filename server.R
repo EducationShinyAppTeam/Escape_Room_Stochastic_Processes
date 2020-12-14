@@ -16,13 +16,6 @@
 
 shinyServer(function(input, output,session) {
   
-  
-  
-  
-  
-  
-  
-  
   # Read in Question Bank ----
   bank <- read.csv(file = "questionbank.csv", stringsAsFactors = FALSE)
   
@@ -277,7 +270,7 @@ shinyServer(function(input, output,session) {
       return(sceneDoor)
     } else if(x > -321.2 & x < -251.4& y > -194.3 & y < -120.86){
       return(sceneLamp)
-    } else if(x > 182.9 & x < -161.3 & y > 67.6 & y < 99.5){
+    } else if(x > -182.9 & x < -161.3 & y > 67.6 & y < 99.5){
       return(scenePlant)
     } else if (x == 10 & y == 10){
       return(sceneStart)
@@ -364,14 +357,14 @@ shinyServer(function(input, output,session) {
   ###### qIndexList <- sample(length(unique(bank$ids)), n = length(unique(bank$)), replace = FALSE)
   indexLlist <- reactiveValues(listc=1:dim(bank)[1])
 
-  player <- reactiveValues(actionPoint = 10)
+  player <- reactiveValues(actionPoint = 1)
   backpack <- reactiveValues(
     None = 0,
-    goldenPassword = 1,
+    goldenPassword = 0,
     fakePassword = 0,
     copperKey = 0,
     fakeKey = 0,
-    goldenBox = 1,
+    goldenBox = 0,
     silverBox = 0,
     copperBox = 0,
     mirror = 0,

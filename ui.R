@@ -53,12 +53,11 @@ ui <- dashboardPage(
         p("This is a template of Escape Room game."),
         h2("Instructions"),
         tags$ol(
-          tags$li("Click to choose the scene you want to interact with."),
-          tags$li("Click Interact button."),
-          tags$li("More to come")
+          tags$li("Answer questions to earn Action points."),
+          tags$li("Use Action points to interact with objects in the scene and gain items which will be stored in your backpack."),
+          tags$li("Items in the backpack may need to be combined to be useful. Such as using a key or password to open a box in your backpack.")
         ),
-        p("Currently nothing for the structure on the server side is added due
-          to the incomplete testing on stability."),
+        #p(),
         div(
           style = "text-align: center",
           bsButton(
@@ -69,11 +68,11 @@ ui <- dashboardPage(
             size = "large"
           )),
         h2("Acknowledgements"),
-        p("Space for Note",
+        p("Zeyuan(Primo) Wang, Xigang Zhang",
           br(),
           br(),
           br(),
-          div(class = "updated", "Last Update: 7/23/2020 by NJH.")
+          div(class = "updated", "Last Update: 12/27/2020 by ZW.")
         )
       ),
       # Prereq Tab ----
@@ -145,11 +144,11 @@ ui <- dashboardPage(
           # ),
           column(
             width = 5,
-            h3("Actionpoints: "),
-            p("Actionpoints you can use: "),
+            h3("Action points: "),
+            p("Action points you can use: "),
             uiOutput("activeChance"),
             p("Out of Action Points? "),
-            p("Answer Questions below this page to gain Action Points to interact with scenes!"),
+            p("Answer Questions below to gain Action Points to interact with scenes!"),
             h3("Backpack: "),
             uiOutput("backpack", class = "largerFont"),
             h3("Used Items: "),
@@ -212,7 +211,7 @@ ui <- dashboardPage(
               value = FALSE, # You can omit these last two as they are default
               disabled = FALSE
             ),
-            useShinyalert(),
+            #useShinyalert(),
             bsButton(
               inputId = 'clear',
               label = "Restart",
@@ -220,24 +219,26 @@ ui <- dashboardPage(
               size = 'large'
             )
           ),
+          #############################################################################
           column(
             width = 3,
             offset = 1,
-            # I'm not a fan of this element and believe that it should be
-            # removed.
-            conditionalPanel(
-              condition = "input.interact != 0",
-              wellPanel(
-                div(
-                  style = "position: relative; top:0",
-                  print("Feedback")
-                ),
-                img(src = "arrow.gif", width = 40),
-              )
-            )
+            # conditionalPanel(
+            #   condition = "input.interact != 0",
+            #   wellPanel(
+            #     div(
+            #       style = "position: relative; top:0",
+            #       #print("Feedback")
+            #     ),
+            #     img(src = "arrow.gif", width = 40),
+            #   )
+            # )
           )
         ),
-        hr(), # If you're going to use a horizontal rule, do so here, not
+        hr(), 
+        #############################################################################
+        
+        # If you're going to use a horizontal rule, do so here, not
         # in a fluidRow
 
 
@@ -261,7 +262,7 @@ ui <- dashboardPage(
 
 
 
-        h3("Answer Questions below to gain Active Points, then use them to interact with objects in the room!"),
+        h3("Answer Questions below to gain Action Points, then use them to interact with objects in the room!"),
         wellPanel( # I'm removing the fluidRows
           h4("Scenario"),
           uiOutput("scenario"),
