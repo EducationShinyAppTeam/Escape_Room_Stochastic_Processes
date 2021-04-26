@@ -8,7 +8,6 @@ library(shinyWidgets)
 library(boastUtils)
 library(grid)
 library(ggplot2)
-#library(shinyalert)
 
 
 
@@ -124,7 +123,6 @@ ui <- dashboardPage(
               width = "90%",
               height = "90%"
             )
-            #, style = "height: '100%';" # Forces the row to have a certain height
           ),
           # column(
           # Not sure why this was commented out and still around
@@ -177,27 +175,7 @@ ui <- dashboardPage(
             p(uiOutput("answer")),
             uiOutput("feedback4")
           )
-          # column(width = 2,
-          #        p("Selelct Items to Combine"),
-          #        bsButton(
-          #          inputId = "combine",
-          #          label = "Combine Item",
-          #          style = "danger",
-          #          size = "default",
-          #          disabled = FALSE
-          #        )
-          #        )
-          # column(
-          #   width = 1,
-          #   conditionalPanel(
-          #     #condition = 'input.interact != 0',
-          #     #fluidRow(
-          #     uiOutput("condition")
-          #     # I don't know what this is supposed to be
-          #     #
-          #     #)
-          #   )
-          # )
+
         ),
         fluidRow(
           column(
@@ -219,49 +197,12 @@ ui <- dashboardPage(
               size = 'large'
             )
           ),
-          #############################################################################
           column(
             width = 3,
             offset = 1,
-            # conditionalPanel(
-            #   condition = "input.interact != 0",
-            #   wellPanel(
-            #     div(
-            #       style = "position: relative; top:0",
-            #       #print("Feedback")
-            #     ),
-            #     img(src = "arrow.gif", width = 40),
-            #   )
-            # )
           )
         ),
         hr(), 
-        #############################################################################
-        
-        # If you're going to use a horizontal rule, do so here, not
-        # in a fluidRow
-
-
-
-        # fluidRow( # Why are you using a fluidRow here?
-        #   conditionalPanel(
-        #     condition = "input.interact != 0",
-        #     p(uiOutput("answer")), # Why was this in a header tag?
-        #     # You only get one (1) h1 in the entire app.
-        #     # What is the point of the above prompt?
-        #     wellPanel( # We generally reserve wellPanels for controls
-        #       # feedback# isn't an Informative Name (see Style Guide)
-        #       uiOutput("feedback1"), # how about "coordinates"
-        #       uiOutput("feedback2"), # how about "backpackContents"
-        #       uiOutput("feedback3"), # unknown, saving for debugging
-        #       uiOutput("feedback4"), # currentGoal?
-        #       uiOutput("feedback5") # unknown, for debugging
-        #     )
-        #   )
-        # ),
-
-
-
         h3("Answer Questions below to gain Action Points, then use them to interact with objects in the room!"),
         wellPanel( # I'm removing the fluidRows
           h4("Scenario"),

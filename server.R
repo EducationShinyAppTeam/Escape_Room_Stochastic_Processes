@@ -7,7 +7,8 @@
 # library(shinyWidgets)
 # library(grid)
 # library(ggplot2)
-# library(shinyalert)
+
+# all packages needed are listed above, incase if the ui.R is missing
 
 
 
@@ -402,7 +403,7 @@ shinyServer(function(input, output,session) {
     #shinyalert("Congratulations!", "You Successfully Escaped the Room! Enjoy the beach~", type = "success")
     
     # This part is saved for 'clear' button, which is suppose to restart the game, 
-    # But I am still thinking if this is necessary
+    # No need for this feature for now, but I prefer keep this in case for testing purpose or future developments
   })
 
   
@@ -484,8 +485,8 @@ shinyServer(function(input, output,session) {
 
   ## Update Scenario, Questions, and Choices with Next Question Button
   observeEvent(input$nextQuestion, {
-  
-    ## the next line is supposed to be added to make sure no repeated questions will be shown. but I didn't test it yet.
+    ## the next line is supposed to be added to make sure no repeated questions will be shown. 
+    ## but it causes bug that I cannot debug
     # qIndexList <- sample(length(unique(bank$ids)), n = length(unique(bank$)), replace = FALSE)
 
     index$index <- sample(dim(bank)[1]/3, 1)*3 - 2
@@ -550,6 +551,40 @@ shinyServer(function(input, output,session) {
       checkIcon = list(yes = icon("check-square"),
                        no = icon("square-o"))
     )
+    
+    # initialize buttons for question submition
+    updateButton(
+      session = session,
+      inputId = "submitAnswer1",
+      label = "Submit Answer",
+      style = "danger",
+      size = "small",
+      disabled = FALSE
+    )
+    updateButton(
+      session = session,
+      inputId = "submitAnswer2",
+      label = "Submit Answer",
+      style = "danger",
+      size = "small",
+      disabled = FALSE
+    )
+    updateButton(
+      session = session,
+      inputId = "submitAnswer3",
+      label = "Submit Answer",
+      style = "danger",
+      size = "small",
+      disabled = FALSE
+    )
+    # initialize the feedbacks. i.e. check and cross marks
+    output$questionFeedback1 <- renderUI({
+    })
+    output$questionFeedback2 <- renderUI({
+    })
+    output$questionFeedback3 <- renderUI({
+    })
+    
   })
 
 
@@ -570,7 +605,6 @@ shinyServer(function(input, output,session) {
       ## session and inputId.
       output$questionFeedback1 <- renderUI({
         img(src = "check.png", width = 30, alt = "Correct") # Don't forget alt text
-        #p("Correct, reactice chance +1!")
       })
     } else if (input$answersQ1 == "--Select Your Answer--"){
       output$questionFeedback1 <- renderUI({
@@ -579,7 +613,6 @@ shinyServer(function(input, output,session) {
     } else {
       output$questionFeedback1 <- renderUI({
         img(src = "cross.png", width = 30, alt = "Incorrect") # Don't forget alt text
-        #p("Incorrect, try again?")
       })
     }
  })
@@ -594,7 +627,6 @@ shinyServer(function(input, output,session) {
       updateButton(session,"submitAnswer2",label = "Submit Answer",style = "danger", size = "small", disabled = TRUE)
       output$questionFeedback2 <- renderUI({
         img(src = "check.png",width = 30)
-        #p("Correct, reactice chance +1!")
       })
     } else if (input$answersQ2 == "--Select Your Answer--"){
       output$questionFeedback2 <- renderUI({
@@ -603,7 +635,6 @@ shinyServer(function(input, output,session) {
     } else {
       output$questionFeedback2 <- renderUI({
         img(src = "cross.png",width = 30)
-        #p("Incorrect, try again?")
       })
     }
   })
@@ -628,7 +659,8 @@ shinyServer(function(input, output,session) {
   })
 
 ## Testing Turning off this code ----
-## Actually it works well when this part is turned off, but I kept this in case 
+## Actually it works well when this part is turned off, but I kept this  
+## in case for un predictable bugs on the question system
   
   # output$question1 <- renderUI({
   #   print(input$tabs)
@@ -1004,9 +1036,6 @@ shinyServer(function(input, output,session) {
         output$answer <- renderUI({
           #h2("You have already activated with this scene.")
           tempString <- "You have already activated with this object."
-          
-          #shinyalert("Woops!", tempString, type = "error")
-          
           sendSweetAlert(
             session = session,
             title = "Woops!",
@@ -1112,13 +1141,11 @@ shinyServer(function(input, output,session) {
   observe({
     if(backpack$out == 0){
       output$feedback4 <- renderUI({
-        #paste("Find Clues to escape the room!")
-        #shinyalert("Hint", "Find Clues to escape the room!", type = "info")
-        
+
         sendSweetAlert(
           session = session,
           title = "Hint!",
-          text = "Find Clues to escape the room!",
+          text = "Find Clues to escape the room!\nMaximize the window for perfect Experience~",
           type = "info"
         )
         
@@ -1134,8 +1161,6 @@ shinyServer(function(input, output,session) {
         text = "You Successfully Escaped the Room! Enjoy the beach~",
         type = "success"
       )
-      
-      #shinyalert("Congratulations!", "You Successfully Escaped the Room! Enjoy the beach~", type = "success")
       
       output$target <- renderPlot({
         plotTarget2()
@@ -1197,10 +1222,7 @@ shinyServer(function(input, output,session) {
 
     } else {
       output$answer <- renderUI({
-        #h2("You have to combine exactly two items that are able to be combined.")
         tempString <- "You have to combine exactly two items that are able to be combined."
-        #shinyalert("Woops!", tempString, type = "error")
-        
         sendSweetAlert(
           session = session,
           title = "Woops!",
