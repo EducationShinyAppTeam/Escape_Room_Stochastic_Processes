@@ -12,14 +12,16 @@ library(png)
 
 # Load additional dependencies and setup functions ----
 source("escapeRoomHelpers.R")
+source('coastal-room.R')
 
 # Define constants ----
 arbitraryChoices <- list("A", "B", "C", "D")
-background <- png::readPNG('www/oceansideRoom.png')
+# background <- png::readPNG('www/oceansideRoom.png')
 beachScene <- png::readPNG("www/beach.png")
 
 # Load Data ----
-questionBank <- read.csv(file = "questionbank.csv", stringsAsFactors = FALSE)
+questionBank <- read.csv(file = "questionbank.csv", header = TRUE)
+roomItems <- read.csv(file = "roomItems.csv", header = TRUE )
 
 # Define UI for App ----
 ui <- list(
@@ -89,7 +91,7 @@ ui <- list(
             br(),
             br(),
             br(),
-            div(class = "updated", "Last Update: 7/9/2021 by NJH.")
+            div(class = "updated", "Last Update: 8/2/2021 by NJH.")
           )
         ),
         #### Prerequisites Page ----
@@ -112,33 +114,81 @@ ui <- list(
           p("Answer questions (below) to earn action points to interact with
             elements of the scene. Click on different parts of scene and then
             press the Interact button."),
+          bsButton(
+            inputId = "debug",
+            label = "debug",
+            icon = icon("bug"),
+            size = "large"
+          ),
           fluidRow(
             column(
               width = 7,
               offset = 0,
-              ##### Scene Plot ----
-              plotOutput(
-                outputId = "target",
-                click = 'Click' ,
-                dblclick = "Click12"
-              )
+              coastalRoom,
+              tags$script(HTML(
+                "document.getElementById('coastalRoom').focus();
+                $('#objects').on('click', '.scene-object', (ev) => {
+                  Shiny.setInputValue('object', ev.target.id);
+                })"
+              ))
             ),
             ##### Scene Info Column ----
             column(
               width = 5,
-              h3("Scene object clicked on"),
+              uiOutput("clickedObject", class = "largerFont"),
+              bsButton(
+                inputId = "interactObject",
+                label = "Interact with object",
+                icon = icon("hand-point-up"),
+                size = "large",
+                style = "success",
+                disabled = TRUE
+              ),
+              br(),
+              br(),
+              uiOutput("actionPointReport", class = "largerFont"),
+              p("Out of action points? Answer questions below to gain action
+                points to interact with the scene and objects."),
+              hr(),
+              h3("Collected Items"),
+              p("Your backpack contains:"),
+              uiOutput("backpackContents"),
+              h4("Combine Items"),
+              p("Select two items from your backpack to use an action point to
+                combine."),
+              selectInput(
+                inputId = "selectedItems",
+                label = "Items to combine",
+                choices = "nothing",
+                selected = NULL,
+                multiple = TRUE
+              ),
+              bsButton(
+                inputId = "combineItems",
+                label = "Combine items",
+                icon = icon("object-group"),
+                style = "warning",
+                size = "large"
+              ),
+              hr(),
+              bsButton(
+                inputId = "resetGame",
+                label = "Reset Game",
+                style = "danger",
+                size = "large"
+              ),
+              hr(),
+              h3("Old-Ignore"),
               uiOutput("answer", class = "largerFont"),
               bsButton(
                 inputId = "interact",
                 label = "Interact with object",
                 icon = icon("hand-point-up"),
                 size = "large",
-                style = "success"
+                style = "danger"
               ),
               hr(),
               uiOutput("activeChance", class = "largerFont"),
-              p("Out of action points? Answer questions below to gain action
-                points to interact with the scene and objects."),
               hr(),
               h3("Items in your backpack"),
               uiOutput("backpack", class = "largerFont"),
@@ -313,7 +363,235 @@ ui <- list(
 
 # Define server logic ----
 server <- function(input, output, session) {
+  ## Debugging ----
+  observeEvent(
+    eventExpr = input$debug,
+    handlerExpr = {
+      print(mapping())
+      sendSweetAlert(
+        session = session,
+        title = "Winner!",
+        type = "success",
+        html = TRUE,
+        text = tags$div(
+          tags$p("Congrats! You have escaped from the room; enjoy the beach."),
+          tags$img(src = "beach.png", alt = "a beach scene", width = "100%")
+        )
+      )
+    }
+  )
 
+  ## User Specific Elements ----
+  interactedList <- reactiveVal("start")
+  actionPoints <- reactiveVal(10)
+  backpackNew <- reactiveVal(NULL)
+
+  ### Hide items behind objects ----
+  mapping <- reactiveVal({
+    places <- objects$name[which(objects$assignable != "no")]
+    places <- sample(places, length(places), replace = FALSE)
+    mappings <- roomItems
+    for (i in 1:nrow(mappings)) {
+      if (mappings$location[i] == "") {
+        mappings$location[i] <- places[i]
+      }
+    }
+    mappings
+  })
+
+
+  ## Watch and report selected scene object ----
+  observeEvent(
+    eventExpr = input$object,
+    handlerExpr = {
+      if (is.null(input$object)) {
+        message <- "Select an object in the scene."
+      } else {
+        cleanObject <- gsub(
+          pattern = "_",
+          replacement = " ",
+          x = input$object
+        )
+        message <- paste0(
+          "You've clicked on the ",
+          cleanObject,
+          "."
+        )
+        updateButton(
+          session = session,
+          inputId = "interactObject",
+          label = paste(" Interact with the", cleanObject),
+          disabled = FALSE
+        )
+      }
+      output$clickedObject <- renderUI({
+        p(message)
+      })
+    },
+    ignoreNULL = FALSE,
+    ignoreInit = FALSE
+  )
+
+  ## Interact with selected object ----
+  observeEvent(
+    eventExpr = input$interactObject,
+    handlerExpr = {
+      if (input$object == "exit" && "exitKey" %in% backpackNew()) {
+        sendSweetAlert(
+          session = session,
+          title = "Winner!",
+          type = "success",
+          html = TRUE,
+          text = tags$div(
+            tags$p("Congrats! You have escaped from the room; enjoy the beach."),
+            tags$img(src = "beach.png", alt = "a beach scene", width = "100%")
+          )
+        )
+        updateButton(
+          session = session,
+          inputId = "interactObject",
+          disabled = TRUE
+        )
+        updateButton(
+          session = session,
+          inputId = "combineItems",
+          disabled = TRUE
+        )
+      } else if ((input$object == "exit" && !("exitKey" %in% backpackNew())) ||
+                 (input$object == "closet" && !("closetKey" %in% backpackNew()))) {
+        sendSweetAlert(
+          session = session,
+          title = "Key Needed",
+          type = "warning",
+          text = "A key is needed to interact further with this object."
+        )
+      } else if (actionPoints() < 1) {
+        sendSweetAlert(
+          session = session,
+          title = "Out of Action Points",
+          type = "warning",
+          text = "You're out of action points. Correctly answer questions
+            below to earn more points to spend on actions."
+        )
+      } else if (input$object %in% interactedList()) {
+        sendSweetAlert(
+          session = session,
+          title = "Already Interacted",
+          type = "info",
+          text = "You've already interacted with this object; there is nothing
+          more for you to do with it."
+        )
+      } else {
+        actionPoints(actionPoints() - 1)
+        interactedList(c(interactedList(), input$object))
+        if (!(input$object %in% mapping()$location)) {
+          sendSweetAlert(
+            session = session,
+            title = "Nothing Found",
+            type = "info",
+            text = "There is nothing here."
+          )
+        } else {
+          foundItem <- mapping()$itemName[which(mapping()$location == input$object)]
+          foundItemDesp <- mapping()$description[which(mapping()$location == input$object)]
+          sendSweetAlert(
+            session = session,
+            title = "Found Item!",
+            type = "info",
+            text = paste0("You have found ", foundItemDesp,". It's been added to
+                          your backpack.")
+          )
+          backpackNew(c(backpackNew(), foundItem))
+          updateSelectInput(
+            session = session,
+            inputId = "selectedItems",
+            choices = backpackNew()
+          )
+        }
+      }
+    }
+  )
+
+  ## Combine items ----
+  observeEvent(
+    eventExpr = input$combineItems,
+    handlerExpr = {
+      if (length(input$selectedItems) < 2 || is.null(input$selectedItems)) {
+        sendSweetAlert(
+          session = session,
+          title = "Error",
+          text = "Too few items selected; please select two items to combine.",
+          type = "error"
+        )
+      } else if (length(input$selectedItems) > 2) {
+        sendSweetAlert(
+          session = session,
+          title = "Error",
+          text = "Too many items selected; please select two items to combine.",
+          type = "error"
+        )
+      } else if (actionPoints() <= 0) {
+        sendSweetAlert(
+          session = session,
+          title = "Out of Action Points",
+          type = "warning",
+          text = "You're out of action points. Correctly answer questions
+            below to earn more points to spend on actions."
+        )
+      } else {
+        box <- input$selectedItems[grepl("Box", input$selectedItems)]
+        key <- input$selectedItems[grepl("Key", input$selectedItems)]
+
+        if (length(box) != 0 & length(key) != 0) {
+          newItem <- roomItems$itemName[which(roomItems$location == box &
+                                                roomItems$required == key)]
+          newDescp <- roomItems$description[which(roomItems$location == box &
+                                                    roomItems$required == key)]
+        } else {
+          newItem <- "none"
+        }
+
+        if (grepl("Key", newItem)) {
+          sendSweetAlert(
+            session = session,
+            title = "New Item!",
+            type = "info",
+            text = paste0(
+              "You successfully combined the items and have found ",
+              newDescp,
+              ". This has been added to your backpack."
+            )
+          )
+          backpackNew(c(backpackNew(), newItem))
+          actionPoints(actionPoints() - 1)
+          updateSelectInput(
+            session = session,
+            inputId = "selectedItems",
+            choices = backpackNew()
+          )
+        } else {
+          sendSweetAlert(
+            session = session,
+            title = "Nothing Happened",
+            type = "info",
+            text = "Nothing happened when you combined the objects."
+          )
+        }
+      }
+    }
+  )
+
+  ## Display remaining action points ----
+  output$actionPointReport <- renderUI({
+    paste("You have", actionPoints(), "action point(s) remaining.")
+  })
+
+  ## Display backpack contents ----
+  output$backpackContents <- renderUI({
+    paste(backpackNew(), collapse = ", ")
+  })
+
+# OLD ----
   ## Creation of Items for the Room ----
   ### Draws on the escapeRoomHelpers.R file
   None <- createItem(name = "nothing", description = "found nothing")
@@ -760,6 +1038,7 @@ server <- function(input, output, session) {
         )
         if (input$answersQ1 == ans1) {
           player$actionPoint <- player$actionPoint + 1
+          actionPoint(actionPoint() + 1)
         }
         updateButton(
           session = session,
@@ -789,6 +1068,7 @@ server <- function(input, output, session) {
         )
         if (input$answersQ2 == ans2) {
           player$actionPoint <- player$actionPoint + 1
+          actionPoint(actionPoint() + 1)
         }
         updateButton(
           session = session,
@@ -818,6 +1098,7 @@ server <- function(input, output, session) {
         )
         if (input$answersQ3 == ans3) {
           player$actionPoint <- player$actionPoint + 1
+          actionPoint(actionPoint() + 1)
         }
         updateButton(
           session = session,
