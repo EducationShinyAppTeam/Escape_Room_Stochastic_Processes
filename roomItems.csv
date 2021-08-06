@@ -1,6 +1,6 @@
 ﻿itemName,description,location,required
 exitKey,the key for the exit,goldenBox,goldenKey
-goldenBox,a locked golden box,,
+goldenBox,a locked golden box,closet,
 goldenKey,the key for the golden box,,
 closetKey,the key for the closet,silverBox,silverKey
 silverBox,a locked silver box,,

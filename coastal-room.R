@@ -9,7 +9,7 @@ objects <- data.frame(
   ),
   assignable = c(
     "no", "yes", "yes", "yes", "yes",
-    "yes", "yes", "yes", "yes", "yes", "yes"
+    "no", "yes", "yes", "yes", "yes", "yes"
   ),
   requirements = c(
     "exitKey, goldenBox, goldenKey", "none", "none", "none", "none",

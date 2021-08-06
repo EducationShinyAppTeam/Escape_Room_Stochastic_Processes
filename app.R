@@ -282,9 +282,7 @@ ui <- list(
             label = "New Context and Questions",
             style = "warning",
             size = "large"
-          ),
-          uiOutput("trigger1"),
-          uiOutput("trigger2")
+          )
         ),
         #### Set up the References Page ----
         ##### Needs Completing ----
@@ -317,25 +315,42 @@ server <- function(input, output, session) {
     eventExpr = input$debug,
     handlerExpr = {
       print(mapping())
-      sendSweetAlert(
-        session = session,
-        title = "Winner!",
-        type = "success",
-        html = TRUE,
-        text = tags$div(
-          tags$p("Congrats! You have escaped from the room; enjoy the beach."),
-          tags$img(src = "beach.png", alt = "a beach scene", width = "100%")
-        )
-      )
+      actionPoints(10)
     }
   )
 
-  ## User Specific Elements ----
+  ## Info button ----
+  observeEvent(
+    eventExpr = input$info,
+    handlerExpr = {
+      sendSweetAlert(
+        session = session,
+        title = "Instructions",
+        text = "Click on different parts of the scene to interact. Answer
+        questions to earn more action points.",
+        type = "info"
+      )
+    })
+
+  ## Go button ----
+  observeEvent(
+    eventExpr = input$go,
+    handlerExpr = {
+      updateTabItems(
+        session = session,
+        inputId = "pages",
+        selected = "game"
+      )
+    })
+
+  ## User/game reactive variables ----
+  gameInProgress <- reactiveVal(FALSE)
   interactedList <- reactiveVal("start")
-  actionPoints <- reactiveVal(10)
+  actionPoints <- reactiveVal(1)
   backpackNew <- reactiveVal(NULL)
   index <- reactiveVal(sample(x = nrow(questionBank) / 3, size = 1) * 3 - 2)
 
+  ## Scene related tasks ----
   ### Hide items behind objects ----
   mapping <- reactiveVal({
     places <- objects$name[which(objects$assignable != "no")]
@@ -349,8 +364,7 @@ server <- function(input, output, session) {
     mappings
   })
 
-
-  ## Watch and report selected scene object ----
+  ### Watch and report selected scene object ----
   observeEvent(
     eventExpr = input$object,
     handlerExpr = {
@@ -382,7 +396,7 @@ server <- function(input, output, session) {
     ignoreInit = FALSE
   )
 
-  ## Interact with selected object ----
+  ### Interact with selected object ----
   observeEvent(
     eventExpr = input$interactObject,
     handlerExpr = {
@@ -467,7 +481,7 @@ server <- function(input, output, session) {
     }
   )
 
-  ## Combine items ----
+  ### Combine items ----
   observeEvent(
     eventExpr = input$combineItems,
     handlerExpr = {
@@ -496,8 +510,13 @@ server <- function(input, output, session) {
       } else {
         box <- input$selectedItems[grepl("Box", input$selectedItems)]
         key <- input$selectedItems[grepl("Key", input$selectedItems)]
+        metalBox <- gsub(pattern = "Box", replacement = "", x = box)
+        metalKey <- gsub(pattern = "Key", replacement = "", x = key)
 
-        if (length(box) != 0 & length(key) != 0) {
+        if (length(box) != 0 & length(key) != 0 &
+            (metalBox == "copper" | metalKey == "copper")) {
+          newItem <- "none"
+        } else if (length(box) != 0 & length(key) != 0) {
           newItem <- roomItems$itemName[which(roomItems$location == box &
                                                 roomItems$required == key)]
           newDescp <- roomItems$description[which(roomItems$location == box &
@@ -536,38 +555,13 @@ server <- function(input, output, session) {
     }
   )
 
-
-
-  ## Initial Game Settings ----
-  gameInProgress <- FALSE
-
-  observeEvent(
-    eventExpr = input$info,
-    handlerExpr = {
-      sendSweetAlert(
-        session = session,
-        title = "Instructions",
-        text = "Click on different parts of the scene to interact. Answer
-        questions to earn more action points.",
-        type = "info"
-      )
-    })
-
-  observeEvent(
-    eventExpr = input$go,
-    handlerExpr = {
-    updateTabItems(
-      session = session,
-      inputId = "pages",
-      selected = "game"
-    )
-  })
-
-  ## Initial Loading of Context and Questions ----
+  ## Earning action points and related tasks ----
+  ### Display questions ----
+  #### This only triggers the first time the game page is accessed
   observeEvent(
     eventExpr = input$pages,
     handlerExpr = {
-      if (input$pages == "game" && gameInProgress == FALSE) {
+      if (input$pages == "game" && !gameInProgress()) {
         output$scenario <- renderUI({p(questionBank[index(), "scenario"])})
 
         output$question1 <- renderUI({
@@ -629,16 +623,15 @@ server <- function(input, output, session) {
           ),
           status = "game"
         )
-
-        gameInProgress <- TRUE
+        gameInProgress(TRUE)
       }
     })
 
-  ## Update Context and Questions ----
+  ### Display new questions and answers ----
   observeEvent(
     eventExpr = input$nextQuestion,
     handlerExpr = {
-      ### Need to rethink the randomization of indices
+      #### Need to rethink the randomization of indices
       index(sample(nrow(questionBank) / 3, 1) * 3 - 2)
 
       output$scenario <- renderUI({p(questionBank[index(), "scenario"])})
@@ -727,7 +720,7 @@ server <- function(input, output, session) {
     ignoreInit = TRUE
   )
 
-  ## Answer Checking ----
+  ### Answer checking ----
   observeEvent(
     eventExpr = input$submitAnswer1,
     handlerExpr = {
@@ -835,7 +828,7 @@ server <- function(input, output, session) {
       updateButton(
         session = session,
         inputId = "interactObject",
-        label = "Interact with object",
+        label = " Interact with object",
         disabled = TRUE
       )
       updateButton(
@@ -868,8 +861,7 @@ server <- function(input, output, session) {
   })
 
   ### Code for Re-rendering mathematics ----
-  output$trigger1 <- renderUI({withMathJax()})
-  output$trigger2 <- renderUI({withMathJax()})
+  typesetMath(session = session)
 
 }
 
